@@ -1,7 +1,9 @@
 #include "ListSet.h"
+#include <string>
 
-
-int ListSet::insert(int key){
+//Insert key to the set in ascending order if key didn't exit in the set.
+template<class T> 
+int ListSet<T>::insert(const T &key){
 	bool insertDone = false;
 	for(int i = 0; i < set.size(); ++i){
 		if(key < set[i]){
@@ -14,21 +16,28 @@ int ListSet::insert(int key){
 			break;
 		}
 	}
+
 	if(!insertDone)
 		set.push_back(key);
 
 	return 0;
 }
 
-bool ListSet::find(int key){
+template<class T> 
+bool ListSet<T>::find(const T &key){
 	for(int i = 0; i < set.size(); ++i){
 		if(key == set[i])
 			return true;
+		else if(key > set[i])
+			return false;
+
 	}
+
 	return false;
 }
 
-int ListSet::remove(int key){
+template<class T> 
+int ListSet<T>::remove(const T &key){
 	for(int i = 0; i < set.size(); ++i){
 		if(key == set[i]){
 			set.erase(set.begin()+i);
@@ -41,9 +50,17 @@ int ListSet::remove(int key){
 	return 0;
 }
 
-void ListSet::printKeys(){
-	for(int e : set){
+template<class T> 
+void ListSet<T>::printKeys(){
+	for(T e : set){
 		cout << e << " ";
 	}
 	cout << endl;
 }
+
+template class ListSet<int>;
+template class ListSet<float>;
+template class ListSet<short>;
+template class ListSet<double>;
+template class ListSet<char>;
+template class ListSet<string>;

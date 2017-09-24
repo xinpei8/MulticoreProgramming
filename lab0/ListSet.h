@@ -2,18 +2,18 @@
 #include <vector>
 using namespace std;
 
-
+template<class T> 
 class ListSet{
 public:
-	int insert(int key);
+	int insert(const T &key);
 
-	bool find(int key);
+	bool find(const T &key);
 
-	int remove(int key);
+	int remove(const T &key);
 
 	void printKeys();
 
 private:
-	vector<int> set;
+	vector<T> set;
 
 };
