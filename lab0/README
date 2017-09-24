@@ -1,0 +1,10 @@
+README
+
+There are four files for lab0:
+1. Implementation of the list-based set: ListSet.cpp ListSet.h
+2. Code for testing: test.cpp
+3. Makefile
+
+Write command "make" in terminal under the file directory /lab0 and run the test:
+> make
+> ./test
