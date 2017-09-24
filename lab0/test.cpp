@@ -35,12 +35,12 @@ int main( int argc, char* argv[] ){
 
 		//Find the numbers in myset and check if insert succeeded.
 		bool isInSet = true;
-  		for (int i = 0; i < numList.size() ; ++i) {
-    		bool isInSet = myset.find(numList[i]);
-    		if(!isInSet){
-    			break;
-    		} 
-		  }
+		for (int i = 0; i < numList.size() ; ++i){
+			  bool isInSet = myset.find(numList[i]);
+			  if(!isInSet){
+				  break;
+				}
+		}
 		 
 		myset.printKeys();
 

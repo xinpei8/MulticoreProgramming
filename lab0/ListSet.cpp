@@ -30,7 +30,6 @@ bool ListSet<T>::find(const T &key){
 			return true;
 		else if(key > set[i])
 			return false;
-
 	}
 
 	return false;
