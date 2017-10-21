@@ -2,7 +2,7 @@ README
 
 There are five files for lab1:
 1. Definition and implementation of the thread-safe objects: ThreadSafeKVStore.h ThreadSafeListenerQueue.h
-2. Helper class for thread-safe std output: ThreadSafeCout 
+2. Helper class for thread-safe std output: ThreadSafeCout.h
 3. Code for testing: main.cpp
 4. Makefile
 
