@@ -1,0 +1,12 @@
+README
+
+There are five files for lab1:
+1. Definition and implementation of the thread-safe objects: ThreadSafeKVStore.h ThreadSafeListenerQueue.h
+2. Helper class for thread-safe std output: ThreadSafeCout 
+3. Code for testing: main.cpp
+4. Makefile
+
+Write command "make" in terminal under the file directory /lab1 and run the test with arguments of N (number of threads):
+> make
+> ./test -n N
+> ./test -n 50
