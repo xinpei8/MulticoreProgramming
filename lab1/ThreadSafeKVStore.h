@@ -9,7 +9,7 @@ using namespace std;
 template<class K, class V>
 class ThreadSafeKVStore{
 public:
-	int insert(const K key, const V value);
+    int insert(const K key, const V value);
     int accumulate(const K key, const V value);
     int lookup(const K key, V& value);
     int remove(const K key);
@@ -19,12 +19,12 @@ public:
             ThreadSafeCout{} << it->first << " -> " << it->second << endl;
         }
     }
-
+    
 private:
     unordered_map<K, V> kvStore;
     mutable std::mutex mu;
-//    std::condition_variable c;
-
+    //    std::condition_variable c;
+    
 };
 
 template<class K, class V>
@@ -77,9 +77,13 @@ int ThreadSafeKVStore<K, V>::remove(const K key){
     }
     return 0;
 }
+
+/* A thread-unsafe way to access all the elements in this kvStore
+ * and add all of its values together.
+ */
 template<class K, class V>
 int ThreadSafeKVStore<K, V>::getSumOfAllValues(){
-    std::lock_guard<std::mutex> guard(mu);
+    //    std::lock_guard<std::mutex> guard(mu);
     auto it = kvStore.begin();
     V sum = it->second;
     it++;
