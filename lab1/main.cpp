@@ -27,12 +27,10 @@ public:
 };
 
 void *thread_fnc(void *arguments);
+int randNum(const int min, const int max);
 int generateValue();
 string generateRandomUser();
 string getTimeString();
-
-static random_device rd;
-static mt19937 mt(rd());
 
 int main( int argc, char* argv[] ){
     /* Validate the program input. */
@@ -46,7 +44,6 @@ int main( int argc, char* argv[] ){
         exit(1);
     }
     int threadNum = stoi(argv[2]);
-    srand(rd());
     
     /* Start running Lab 1 test */
     cout << "------ Lab1 Thread-safe Test Start------\n";
@@ -91,6 +88,8 @@ int main( int argc, char* argv[] ){
     }
     
     clock_t end = clock();
+    
+    /* Output test result. */
     string result = (myMap.getSumOfAllValues() == threadsOverallSum) ? "Success" : "Fail";
     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     ThreadSafeCout{} << "Program Result: " + result + "\n";
@@ -107,8 +106,9 @@ void *thread_fnc(void *arguments){
     for(int i = 0; i < ITERATION_NUM; i++){
         int32_t v;
         string key;
-        int randNum = rand()%100;
-        Job job = (randNum < 20) ? ACCUMULATE : LOOKUP;
+        
+        /* Do ACCUMULATE or LOOKUP with probability of 20% and 80%. */
+        Job job = (randNum(1,100) <= 20) ? ACCUMULATE : LOOKUP;
         
         switch (job) {
             case ACCUMULATE:
@@ -137,15 +137,20 @@ void *thread_fnc(void *arguments){
     return NULL;
 }
 
+int randNum(const int min, const int max){
+    static random_device rd;
+    mt19937 mt(rd());
+    uniform_int_distribution<int32_t> distribution(min, max);
+    return distribution(mt);
+}
+
 string generateRandomUser(){
-    int randNum = rand() % 501;
-    string user = "User" + to_string(randNum);
+    string user = "User" + to_string(randNum(0, 500));
     return user;
 }
 
 int generateValue(){
-    uniform_int_distribution<int32_t> distribution(-256, 256);
-    int32_t value = distribution(mt);
+    int32_t value = randNum(-256, 256);
     return value;
 }
 
