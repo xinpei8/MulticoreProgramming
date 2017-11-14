@@ -1,53 +1,64 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+// #include <string.h>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
 
 
-#include <string.h>
+// #include <string.h>
 #include <arpa/inet.h>
 
 
 #include <iostream>
 #include <sstream> 
-#include <list>
-#include <mutex>
-#include <condition_variable>
+// #include <list>
+// #include <mutex>
+// #include <condition_variable>
+
+#include "httpreq.hpp"
+#include "httpresp.hpp"
 #include "ThreadSafeCout.h"
 #include "ThreadSafeKVStore.h"
+#include "ThreadSafeListenerQueue.h"
 #include "md5.h"
 // using namespace std;
 
 class ThreadArgs {
 public:
-    ThreadArgs(){;}
-    ThreadArgs(ThreadSafeKVStore<string, pair<string, string>>& mymap, 
-        int& i, string& request){
+    ThreadArgs(){
+        idPtr = 0;
+        newsockfdPtr = 0;
+        requestPtr = NULL;
+    }
+    ThreadArgs(ThreadSafeListenerQueue<int> &threadPool, ThreadSafeKVStore<string,  pair<string, string>> *mymap, int& i, HTTPReq& request, int &newsockfd){
 
-        // threadPoolPtr = &threadPool;
-        mapPtr = &mymap;
-        idPtr = &i;
-        requestPtr = &request;
+        threadPoolPtr = &threadPool;
+        // threadPoolPtr
+        mapPtr = mymap;
+        idPtr = i;
+        newsockfdPtr = newsockfd;
+        requestPtr = new HTTPReq(newsockfd);
     }
 
     // ThreadPoolServer *threadPoolPtr;
+    ThreadSafeListenerQueue<int> *threadPoolPtr;
     ThreadSafeKVStore<string,  pair<string, string>> *mapPtr;
-    int *idPtr;
-    string *requestPtr;
+    int idPtr;
+    int newsockfdPtr;
+    HTTPReq *requestPtr;
 };
 
 class ThreadPoolServer{
 public:
-    ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, pair<string, string>> &KVStore);
+    ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, pair<string, string>> &KVStore, int portNumber);
 
-    /* Start running the server for getting request from clients. */
+ //    /* Start running the server for getting request from clients. */
     void run();
 
-    /* Push the id of available thread into queue. */
-	int  push(const int threadId);
+ //    /* Push the id of available thread into queue. */
+	// int  push(const int threadId);
 
     /* Keep listening to the queue until there is at least one available thread. 
        Pull one out of the queue and assign jobs to the thread with given thread 
@@ -55,8 +66,8 @@ public:
 	int listen(int& idleThreadId);
 
 private:
-    void *thread_fnc(void *arguments);
-    void printQ();//for testing
+    static void *thread_fnc(void *arguments);
+    // void printQ();//for testing
     void error(const char *msg){
         perror(msg);
         exit(1);
@@ -70,14 +81,16 @@ private:
 
     // Members for threads and key/value store
     ThreadSafeKVStore<string, pair<string, string>> *myMap;
+    ThreadSafeListenerQueue<int> threadPool;// stores the available thread id
     pthread_t *threads;
     ThreadArgs *args;
-	list<int> threadPool;
-    mutable std::mutex mu;
-    std::condition_variable c;
+    // mutable std::mutex mu;
+    // std::condition_variable c;
 
 };
-ThreadPoolServer::ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, pair<string, string>> &KVStore){
+
+
+ThreadPoolServer::ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, pair<string, string>> &KVStore, int portNumber){
     cout << "Start constructing ThreadPoolServer...\n";
     myMap = &KVStore;
 
@@ -86,7 +99,7 @@ ThreadPoolServer::ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, p
     args = new ThreadArgs[threadNumber];
 
     for(int i = 0; i < threadNumber; ++i){
-        this->push(i);
+        threadPool.push(i);
     }
 
     cout << "Finish creating threads.\n";
@@ -102,7 +115,7 @@ ThreadPoolServer::ThreadPoolServer(int threadNumber, ThreadSafeKVStore<string, p
     memset(&server_addr, 0, sizeof(server_addr));//set all to zero
     server_addr.sin_family = AF_INET;  //using IPv4 address
     server_addr.sin_addr.s_addr = INADDR_ANY; //binds the socket to all available interfaces
-    server_addr.sin_port = htons(2100);  //port
+    server_addr.sin_port = htons(portNumber);  //port
     // bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
     if (::bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) 
@@ -119,47 +132,42 @@ void ThreadPoolServer::run(){
     ::listen(server_socket, 5);
     cout << "Server start listening to client request" << endl;
     while(1){
-        // listen(server_socket, 5);
 
-        //socket receive one request
+        // Accept and parse  HTTP request
         struct sockaddr_in client_addr;
-        char buffer[256];
-
-        // string request = "";
 
         socklen_t client_len = sizeof(client_addr);
         int newsockfd = accept(server_socket, (struct sockaddr *) &client_addr, &client_len);
         if (newsockfd < 0) 
           error("ERROR on accept");
-        
-        bzero(buffer,256);
-        //memset(&buffer, 0, sizeof(buffer));
-        int n = read(newsockfd,buffer,255);
-        if (n < 0) 
-            error("ERROR reading from socket");
 
-        printf("[Server]Here is the message: %s\n", buffer);
-
-        n = write(newsockfd, buffer ,18);
-        if (n < 0) 
-            error("ERROR writing to socket");
-        close(newsockfd);
-        // close(sockfd);
-
+        HTTPReq request(newsockfd);
+        if (0 != request.parse() || request.isMalformed()) {
+            std::cerr << "Failed to parse sample request. Aborting test" << std::endl;
+            exit(-1);
+        }
+        cout << "\n[Server] Here is the request:\n";
+        cout << request << std::endl;
 
 
         // //get an idle thread id
-        // this->listen(id);
 
-        // //parse the request
-        // ThreadArgs newArg(myMap, id, request);
-        // args[id] = newArg;
-        // rc = pthread_create(&threads[id], NULL, &thread_fnc, (void *)&args[id]);
+        threadPool.listen(id);
+        cout << "id = " << id << "\n";
+
+        //parse the request
+        ThreadArgs newArg(this->threadPool, this->myMap, id, request, newsockfd);
+
+        args[id] = newArg;
+        cout << "id = " << id << " newsockfd = " + to_string(newsockfd) + " \n";
+        int rc = pthread_create(&threads[id], NULL, thread_fnc, (void *)&args[id]);
         
-        // if (rc) {
-        //     ThreadSafeCout{} << "Error:unable to create thread," << rc << endl;
-        //     exit(EXIT_FAILURE);
-        // }
+        if (rc) {
+            ThreadSafeCout{} << "Error:unable to create thread," << rc << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        // close(newsockfd);
 
 
     }
@@ -167,64 +175,75 @@ void ThreadPoolServer::run(){
 
 void *ThreadPoolServer::thread_fnc(void *arguments){
     ThreadArgs *args = (ThreadArgs *)arguments;
-    stringstream ss(*args->requestPtr);
-    string job, key;
+    HTTPReq request = *args->requestPtr;
+    // ThreadPoolServer *mapPtr = *args->threadPoolPtr;
+
+    string method = request.getMethod();
+    string key = request.getURI();
     pair<string, string> value("", "");
-    // string key = "";
-    // string value = "";
-    ss >> job;
-    ss >> key;
-    if (job == "GET"){//int lookup(const K key, V& value);
-        args->mapPtr->lookup(key, value);
+
+    // char ok[] = "200 OK";
+    // char fail[] = "404 NOT Found";
+    int check = 0;
+
+
+    if (method == "GET"){//int lookup(const K key, V& value);
+        check = args->mapPtr->lookup(key, value);
+        // char ok[] = "200 OK";
         //ADD: reply value to socket
+        ThreadSafeCout{} << "Thread: " + to_string(args->idPtr) + " finish GET " + key + " value = " + value.first << ", " + value.second + "\n";
 
     }
-    else if (job == "POST"){//int insert(const K key, const V value);
-        ss >> value.first;
+    else if (method == "POST"){//int insert(const K key, const V value);
+        value.first = request.getBody();
         value.second = md5(value.first);
-        args->mapPtr->insert(key, value);
+        check = args->mapPtr->insert(key, value);
+
         //ADD: reply sucess to socket
+        ThreadSafeCout{} << "Thread: " + to_string(args->idPtr) + " finish POST " + key + " value = " + value.first << ", " + value.second + "\n";
 
 
     }
-    else if (job == "DELETE"){//int remove(const K key);
-        args->mapPtr->remove(key);
+    else if (method == "DELETE"){//int remove(const K key);
+        check = args->mapPtr->remove(key);
         //ADD: reply sucess to socket
+        ThreadSafeCout{} << "Thread: " + to_string(args->idPtr) + " finish REMOVE " + key + "\n";
 
     }
     else {
-        ThreadSafeCout{} << "Thread: " + to_string(*args->idPtr) + "Error: wrong type of client request.\n";
+        ThreadSafeCout{} << "Thread: " + to_string(args->idPtr) + " Method = " + method +
+        " Ignore: method is not GET/POST/DELETE.\n";
     }
+
+    HTTPResp ok(200, request.getBody());
+    HTTPResp fail(404, request.getBody());
+    ThreadSafeCout{} << "newSockFd = " + to_string(args->newsockfdPtr) + "\n";
+
+    /* Write back Http Response */
+    if(check == 0){
+        // send(*args->newsockfdPtr, ok_ , sizeof(ok_), 0);
+        send(args->newsockfdPtr, ok.getResponse().c_str(), (int) strlen(ok.getResponse().c_str()), 0);
+    }else{
+        // send(*args->newsockfdPtr, fail_ , sizeof(fail_), 0);
+        send(args->newsockfdPtr, fail.getResponse().c_str(), (int) strlen(fail.getResponse().c_str()), 0);
+
+    }   
 
     
     //Job completed, push thread id to thread pool.
-    this->push(*args->idPtr);
-    // args->queuePtr->push(valueSum);
-    ThreadSafeCout{} << "Thread: " + to_string(*args->idPtr) + " completed\n";
+    args->threadPoolPtr->push(args->idPtr);
+
+    close(args->newsockfdPtr);
+
+    // ThreadSafeCout{} << "Thread: " + to_string(*args->idPtr) + " completed\n";
     return NULL;
 }
 
 
-int ThreadPoolServer::push(const int threadId){
-    std::lock_guard<std::mutex> lock(mu);
-    threadPool.push_front(threadId);
-    c.notify_one();
-    return 0;
-}
 
-int ThreadPoolServer::listen(int& idleThreadId){
-    std::unique_lock<std::mutex> lock(mu);
-    while (threadPool.empty()) {
-        c.wait(lock);//wait until there is an element in queue.
-    }
-    idleThreadId = threadPool.back();
-    threadPool.pop_back();
-    return 0;
-}
-
-void ThreadPoolServer::printQ(){
-    for (auto e : threadPool) {
-        cout << e << " ";
-    }
-    cout << endl;
-}
+// void ThreadPoolServer::printQ(){
+//     for (auto e : threadPool) {
+//         cout << e << " ";
+//     }
+//     cout << endl;
+// }
