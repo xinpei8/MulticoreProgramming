@@ -6,4 +6,4 @@ Write command "make" in terminal under the file directory /lab2 and run the test
 > ./test -n 50 2020
 
 When testing with client tools, assign localhost for testing.
-> http://localhost:2020
+> http://localhost:2020/test

@@ -18,9 +18,9 @@ int main( int argc, char* argv[] ){
         cout << "Invalid arguments. Should be like: ./run -n <N> <portNumber>\n";
         exit(1);
     }
+
     int threadNumber = stoi(argv[2]);
     int portNumber = stoi(argv[3]);
-
 
     /* Stores the value and md5 value(in string) of the key */
     ThreadSafeKVStore<string, pair<string, string>> kvStore;
