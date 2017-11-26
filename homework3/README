@@ -1,0 +1,10 @@
+README
+
+There are three files for homework 3:
+1. Definition and implementation of the thread-safe ordered list set: ConcurrentOrderedList.h 
+2. Code for testing: main.cpp
+3. Makefile
+
+Write command "make" in terminal under the file directory /homework3 and run the test:
+> make
+> ./test
