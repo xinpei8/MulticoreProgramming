@@ -1,0 +1,26 @@
+1. 
+   a. Rewrite the bitset class to make reset(), flip() methods thread-safe.
+   b. Rewrite test() methods to make it thread-safe
+   c. Propose a way in terms of locking to make it more parallel
+   d. What if we say it is only 86x or 86x64, any difference?
+   e. What if we say instead of 1 byte for one element in each array index, we record 8 elements in 1 byte in each array index?
+
+2. 
+
+3. What is coroutine and what’s the difference between coroutines and threads? May give a pseudo code for example. If you don’t know the answer, explain … instead.
+
+4. Explain below parallelism in a sentence or two. Specify it is by CPU, compiler or programmer application. 
+   a. Instruction-level parallelism
+   b. Basic block-level parallelism
+   c. Task-level parallelism
+
+5. What is CAS (compare and swap)?
+  a. explain the return value and parameters of CAS()
+  b. use CAS() to modify below method to make it thread-safe
+
+     static int sum_a;
+     int getSum(int a){
+	return sum_a + a;
+     }
+
+Bonus: What is hyperthreading? 
