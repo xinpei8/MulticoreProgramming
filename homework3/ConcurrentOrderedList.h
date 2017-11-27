@@ -49,6 +49,8 @@ public:
     Response<T> lookup(const T key, bool onlyLookup);
     bool insert(const T key);
     bool remove(const T key);
+    
+    /* Print only for testing */
     void printList(){
         std::lock_guard<std::mutex> lock(mu);
         Node<T>* ptr = head->next;
@@ -69,18 +71,13 @@ template<class T>
 Response<T> ConcurrentOrderedList<T>::lookup(const T key, bool onlyLookup){
     ThreadSafeCout{} << "Lookup key = " << key << "\n";
     head->mu.lock();
-    if (head->next == nullptr) {
-        ThreadSafeCout{} << "list is empty\n";
-        if (onlyLookup) {
-            head->mu.unlock();
-        }
-        return Response<T>(head, nullptr, nullptr, false);
-    }
-    head->mu.unlock();
+    
     Node<T> *ptr = head->next;
     Node<T> *parent = head;
     while (ptr) {
-        ptr->pre->mu.lock();
+        if (ptr->pre != head) {
+            ptr->pre->mu.lock();
+        }
         ptr->mu.lock();
         
         if(ptr->value == key){
@@ -111,9 +108,10 @@ Response<T> ConcurrentOrderedList<T>::lookup(const T key, bool onlyLookup){
         parent = ptr;
         ptr = ptr->next;
     }
+    
     // Key not found. Should be between *pre and *cur
-    if (!onlyLookup) {
-        parent->mu.lock();
+    if (onlyLookup) {
+        parent->mu.unlock();
     }
     return Response<T>(parent, nullptr, nullptr, false);
 }
@@ -154,7 +152,6 @@ bool ConcurrentOrderedList<T>::remove(const T key){
         response.pre->mu.unlock();
         return false;
     }
-    
     
     // Remove the node with key from list
     response.pre->next = response.next;

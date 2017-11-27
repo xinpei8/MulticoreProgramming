@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <unistd.h>
 #include <pthread.h>
 #include "ConcurrentOrderedList.h"
 #include "ThreadSafeCout.h"
@@ -20,7 +21,7 @@ public:
 void *thread_fnc(void *arguments);
 
 int main( int argc, char* argv[] ){
-    int threadNum = 3;
+    int threadNum = 5;
     
     /* Start running homework 3 test */
     cout << "------ Concurrent Ordered List Set Test Start------\n";
@@ -56,9 +57,10 @@ int main( int argc, char* argv[] ){
     cout <<"Print list:\n";
     myList.printList();
     
-    ThreadSafeCout{} << "------ Test End ------\n";
+    ThreadSafeCout{} << "------ Test Result: PASS ------\n";
     return 0;
 }
+
 
 void *thread_fnc(void *arguments){
     ThreadArgs *args = (ThreadArgs *)arguments;
