@@ -9,7 +9,6 @@ using namespace std;
 
 int main( int argc, char* argv[] ){
     
-    
     /* Validate the program input. */
     if(argc != 4){
         cout << "Invalid arguments. Should be like: ./run -n <N> <portNumber>\n";
