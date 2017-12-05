@@ -103,17 +103,33 @@ std::string HTTPReq::readLine(void) {
 	errno = 0;
 	int state = 0;			// 0: reading bytes; 1: read \r; 2: read \r\n
 	std::string line = "";
+    
+    int nullCount = 0;
 
 	while(state != 2) {
 		char byte;
 		int rval = read(sock_fd_, (void*)&byte, 1);
+        
+        /* If no more request passed in this connection, check if we keep reading '\0' */
+        if (byte < 32 || byte > 126) {
+            nullCount++;
+            
+            // Detect that no more request in this connection
+            if (nullCount == 50) {
+                return "";
+            }
+        }else {
+            nullCount = 0;
+        }
+        
 		if (rval < 0) {
 			// errno is set
+            
 			return "";
 		} else if (rval == 1) {
 			line.append(1, byte);
 			if (state == 1) {
-				state = (byte == '\n') ? 2 : 0;
+                state = (byte == '\n') ? 2 : 0;
 			} else if (state == 0 && byte == '\r') {
 				state = 1;
 			}
