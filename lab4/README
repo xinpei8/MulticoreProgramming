@@ -1,0 +1,8 @@
+README
+
+To run the server program, write command "make" in terminal under the file directory /lab4 and run the server with arguments of N (number of threads) and P (port number):
+> make
+> ./test -n <N> <P>  <on-disk directory for kvStore>
+> ./test -n  5  2020  data
+
+When testing with client tools(httperf), assign server/IP and port number for testing.
