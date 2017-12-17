@@ -32,8 +32,6 @@ public:
 private:
     unordered_map<K, V> kvStore;
     mutable std::mutex mu;
-    //    std::condition_variable c;
-    
 };
 
 template<class K, class V>
@@ -85,6 +83,10 @@ bool ThreadSafeKVStore<K, V>::maintainSize(int capacity, K& key){
     }
     int minFreq = INT_MAX;
     for (auto it = kvStore.begin(); it != kvStore.end(); ++it){
+        if (it->second < 10) {
+            key = it->first;
+            break;
+        }
         if (it->second < minFreq) {
             minFreq = it->second;
             key = it->first;
@@ -120,11 +122,5 @@ int ThreadSafeKVStore<K, V>::getSumOfAllValues(){
     }
     return sum;
 }
-
-//template<class K, class V>
-//int ThreadSafeKVStore<K, V>::getSize(){
-//    std::lock_guard<std::mutex> guard(mu);
-//    return kvStore.size();
-//}
 
 #endif

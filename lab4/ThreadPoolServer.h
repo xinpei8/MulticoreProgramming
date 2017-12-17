@@ -19,6 +19,7 @@
 #include "md5.h"
 #include "signal.h"
 #define CAPACITY 128
+#define WITH_IN_MEMORY_CACHE 1 // Flag for testing different server store settings
 
 
 static ThreadSafeKVStore<string, double> reportMap;
@@ -215,25 +216,40 @@ void *ThreadPoolServer::thread_fnc(void *arguments){
         pair<string, string> value("", "");
         int check = 0;
         int freq = 0;
+        string keyToBePopped = ""; // for in-memory data size maintenance
+        bool hasRemovedKey = false; // for in-memory data size maintenance
         
         if (method == "GET"){
             /*
              The server reads the relevant file each time a lookup occurs
              only if the in-memory cache does not currently hold the given key.
              */
-            
-            check = args->mapPtr->lookup(key, value);
-            
-            if (check != 0) { // not found in memory
-                check = readKVfromFile(folder, key, value);
+            if (WITH_IN_MEMORY_CACHE) {
+                check = args->mapPtr->lookup(key, value);
                 
-                if (check == 0) { //key exists in files, bring it to memory
-                    args->keyToFrequencyMapPtr->insert(key, 1);
-                    args->mapPtr->insert(key, value);
+                if (check != 0) { // not found in memory
+                    check = readKVfromFile(folder, key, value);
+                    
+                    if (check == 0) { //key exists in files, bring it to memory
+                        args->keyToFrequencyMapPtr->insert(key, 1);
+                        args->mapPtr->insert(key, value);
+                        
+                        /*
+                         Check data size in memory. If the size of kvStore exceeds
+                         the capacity, remove the least frequently used key.
+                         */
+                        hasRemovedKey = args->keyToFrequencyMapPtr->maintainSize(CAPACITY, keyToBePopped);
+                        if (hasRemovedKey) {
+                            args->mapPtr->remove(keyToBePopped);
+                        }
+                    }
+                    
+                } else { // found in memory
+                    args->keyToFrequencyMapPtr->accumulate(key, 1);// update freqency
                 }
-                
-            } else { // found in memory
-                args->keyToFrequencyMapPtr->accumulate(key, 1);// update freqency
+            }
+            else {// Without in-memory cache, for testing.
+                check = readKVfromFile(folder, key, value);
             }
             
             
@@ -248,9 +264,20 @@ void *ThreadPoolServer::thread_fnc(void *arguments){
              */
             value.first = request.getBody();
             value.second = md5(value.first);
+            
+            if (WITH_IN_MEMORY_CACHE) {
+                check = args->mapPtr->insert(key, value); //save in memory
+                args->keyToFrequencyMapPtr->accumulate(key, 1);// update freqency
+                /*
+                 Check data size in memory. If the size of kvStore exceeds
+                 the capacity, remove the least frequently used key.
+                 */
+                hasRemovedKey = args->keyToFrequencyMapPtr->maintainSize(CAPACITY, keyToBePopped);
+                if (hasRemovedKey) {
+                    args->mapPtr->remove(keyToBePopped);
+                }
+            }
             writeKVtoFile(folder, key, value.first, value.second);
-            check = args->mapPtr->insert(key, value); //save in memory
-            args->keyToFrequencyMapPtr->accumulate(key, 1);// update freqency
             
             
             
@@ -261,9 +288,11 @@ void *ThreadPoolServer::thread_fnc(void *arguments){
             /*
              Delete the relevant file, and if it exists, the relevant in-memory cache entry.
              */
-            args->mapPtr->remove(key);
-            args->keyToFrequencyMapPtr->remove(key);
-            check = deleteFile(folder, key);//CHECK MUTEX
+            if (WITH_IN_MEMORY_CACHE) {
+                args->mapPtr->remove(key);
+                args->keyToFrequencyMapPtr->remove(key);
+            }
+            check = deleteFile(folder, key);
             
             ThreadSafeCout{} << "Thread: " + to_string(args->id) + " finish REMOVE " + key + "\n";
             args->reportMapPtr->accumulate("DELETE_count", 1);
@@ -287,18 +316,6 @@ void *ThreadPoolServer::thread_fnc(void *arguments){
         clock_t end = clock();
         double elapsed_secs = double(end - args->startTime) / CLOCKS_PER_SEC * 1000;//(in milliseconds)
         requestTime.push(elapsed_secs);
-        
-        
-        /* 
-         Check data size in memory. If the size of kvStore exceeds
-         the capacity, remove the least frequently used key.
-         */
-        string keyToBePopped = "";
-        bool hasRemovedKey = args->keyToFrequencyMapPtr->maintainSize(CAPACITY, keyToBePopped);
-        if (hasRemovedKey) {
-            args->mapPtr->remove(keyToBePopped);
-        }
-        
         
     }//end while
 }
