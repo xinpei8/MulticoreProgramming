@@ -1,0 +1,12 @@
+README
+
+Please refer to the report of testing server with different data store settings in Lab4_Report.pdf
+
+To run the server program, write command "make" in terminal under the file directory /lab4 and run the server with arguments of N (number of threads), P (port number), and D(on-disk directory for kvStore):
+> make
+> ./test -n <N>  <P>   <D>
+> ./test -n  4   2020  data
+
+
+When testing with client tools(httperf), assign server/IP and port number for testing.
+> httperf --server <IP> --port <2020> --wsesslog=10,1,filen10m1000-z.txt

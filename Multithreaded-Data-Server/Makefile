@@ -1,9 +1,9 @@
 CC = g++
 RM = rm
-TARGET = test-httpreq_jess
+TARGET = test
 CCFLAGS = -std=c++11 -g
 LDFLAGS = -lpthread
-SRCS = httpreq.cc httpresp.cc test-httpreq_jess.cc
+SRCS = httpreq.cc httpresp.cc main.cpp md5.cpp
 OBJS = $(SRCS:.cc=.o)
 
 %.o: %.cc
