@@ -1,6 +1,6 @@
 README
 
-Please refer to the report of testing server with different data store settings in Lab4_Report.pdf
+Please refer to the report of testing server with different data store settings in Report.pdf
 
 To run the server program, write command "make" in terminal under the file directory /lab4 and run the server with arguments of N (number of threads), P (port number), and D(on-disk directory for kvStore):
 > make
